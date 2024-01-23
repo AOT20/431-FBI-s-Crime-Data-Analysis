@@ -1,0 +1,847 @@
+library(httr)
+library(jsonlite)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(car)
+
+#Question 1
+#Request the national arrest data from the years of 2000-2019 within the U.S.
+#Data will tell how many arrests occurred for each crime
+Url <- "https://api.usa.gov/crime/fbi/cde/arrest/national/all"
+Pmts <- list(from = 2000, to = 2019, API_KEY = "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub")
+
+Rs <- GET(Url, query = Pmts)
+
+if (status_code(Rs) == 200) {
+  
+  DataQ1 <- fromJSON(content(Rs, "text"))
+  
+  print(DataQ1)
+} else {
+  
+  stop("Error: Unable to retrieve data from API")
+}
+Q1<-DataQ1$data
+#Add total arrests for each year
+Q1$TotalArrests<-rowSums(Q1[,2:32])
+#Change column names so no error occurs
+colnames(Q1) <- make.names(colnames(Q1))
+#Create dataframes for both decades
+Arrests_2000_2009 <- subset(Q1, data_year >= 2000 & data_year <= 2009)
+Arrests_2010_2019 <- subset(Q1, data_year >= 2010 & data_year <= 2019)
+
+# Perform t-test on the TotalArrests values for each year within each time period
+t.test(Arrests_2000_2009$TotalArrests, Arrests_2010_2019$TotalArrests)
+
+#Follow-Up
+################################################################################################
+
+#Request the national arrest data for ethnicities in the U.S from 2000-2019
+Url2P2 <- "https://api.usa.gov/crime/fbi/cde/arrest/national/all/race"
+Pmts2P2 <- list(from = 2000, to = 2019, API_KEY = "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub")
+
+Rs2P2 <- GET(Url2P2, query = Pmts2P2)
+if (status_code(Rs2P2) == 200) {
+  
+  Data2P2 <- fromJSON(content(Rs2P2, "text"))
+  print(Data2P2)
+} else {
+  
+  stop("Error: Unable to retrieve data from API")
+}
+
+Q1FP2<-Data2P2$data
+names(Q1FP2)[8] <- "Unknown_Race"
+#Create a new dataframe called demographics
+Demographics<-Q1FP2
+#Change column names so no error occurs
+colnames(Demographics) <- make.names(colnames(Demographics))
+#Add up total arrests for each year
+Demographics$Total_Arrests <- rowSums(Demographics[, c("Asian", "Native.Hawaiian", "Black.or.African.American", "American.Indian.or.Alaska.Native", "White", "Unknown_Race")])
+
+#Get rid of the data year and offense columns in order to run a linear regression
+Demographics <- subset(Demographics, select = -c(data_year, offense))
+
+#Create data frames for each decade
+Demographics_Decade1<-head(Demographics, 10)
+Demographics_Decade2<-slice(Demographics, 11:20)
+
+#Create linear regression models (Decade 1)
+WhiteandBlackorAfricanAmerica <- lm(Total_Arrests ~.- Unknown_Race - Native.Hawaiian-American.Indian.or.Alaska.Native-Asian, data = Demographics_Decade1)
+AmericanIndianorAlaskaNative<-lm(Total_Arrests ~.- Unknown_Race - Native.Hawaiian-Black.or.African.American-White-Asian, data = Demographics_Decade1)
+summary(WhiteandBlackorAfricanAmerica)
+summary(AmericanIndianorAlaskaNative)
+#Ensure correlations are less than 5 to avoid multicollinearity
+vif(WhiteandBlackorAfricanAmerica)
+
+#Create linear regression models (Decade 2)
+AsianandWhite <- lm(Total_Arrests ~.- Unknown_Race - Native.Hawaiian-American.Indian.or.Alaska.Native-Black.or.African.American, data = Demographics_Decade2)
+BlackorAfricanAmericanandAmericanIndianorAlaskaNative <- lm(Total_Arrests ~.- Unknown_Race - Native.Hawaiian-White-Asian, data = Demographics_Decade2)
+summary(AsianandWhite)
+summary(BlackorAfricanAmericanandAmericanIndianorAlaskaNative)
+#Ensure correlations are less than 5 to avoid multicollinearity
+vif(AsianandWhite)
+vif(BlackorAfricanAmericanandAmericanIndianorAlaskaNative)
+
+rm(list = ls())
+
+
+####################################################################################################################################################
+
+
+# Question 2: Main 
+
+# I got confused when I started the assignment and I thought I was doing Q3
+# That's the reason why the tables are named as
+
+
+####################################################################################################################################################
+
+# Calling from FBI's CDE API: 
+
+# CDE_key<- "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub" 
+# Key had to be requested 
+
+library(httr)
+library(jsonlite)
+
+
+####################################################################################################################################################
+
+Url1 <- "https://api.usa.gov/crime/fbi/cde/hate-crime/national/bias_incident/all"
+Pmts1 <- list(from = 2000, to = 2021, API_KEY = "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub")
+
+Rs <- GET(Url1, query = Pmts1)
+Data1 <- fromJSON(content(Rs, "text"))
+
+
+Q3.counts.hatecrimes.from.1991.to.2021<- Data1$data
+
+####################################################################################################################################################
+
+Url2 <- "https://api.usa.gov/crime/fbi/cde/hate-crime/national/location/all"
+Pmts2 <- list(from = 2000, to = 2021, API_KEY = "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub")
+
+Rs2 <- GET(Url2, query = Pmts2)
+Data2 <- fromJSON(content(Rs2, "text"))
+
+
+Q3.locations.hatecrimes.from.1991.to.2021<- Data2$data
+
+####################################################################################################################################################
+
+Url3 <- "https://api.usa.gov/crime/fbi/cde/hate-crime/national/offender_race/all"
+Pmts3 <- list(from = 2000, to = 2021, API_KEY = "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub")
+
+Rs3 <- GET(Url3, query = Pmts3) 
+Data3 <- fromJSON(content(Rs3, "text"))
+  
+
+Q3.Offender.race.hatecrimes.from.2000.to.2021<- Data3$data
+
+####################################################################################################################################################
+
+Url4 <- "https://api.usa.gov/crime/fbi/cde/hate-crime/national/victim_type/all"
+Pmts4 <- list(from = 2000, to = 2021, API_KEY = "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub")
+
+Rs4 <- GET(Url4, query = Pmts4)
+Data4 <- fromJSON(content(Rs4, "text"))
+  
+ 
+Q3.victim.type.hatecrimes.from.2000.to.2021<- Data4$data 
+
+rm(Rs,Rs2,Rs3,Rs4,Data1,Data2,Data3,Data4,Pmts1,Pmts2,Pmts3,Pmts4,Url1,Url2,Url3,Url4)
+
+####################################################################################################################################################
+
+
+# Data Cleaning:
+
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+options(scipen = 999)
+
+# Only keep years 2000 - 2021:
+
+min(Q3.counts.hatecrimes.from.1991.to.2021$data_year)
+Q3.counts.hatecrimes.from.1991.to.2021<- Q3.counts.hatecrimes.from.1991.to.2021 %>% filter(!(data_year %in% c(1991:1999)))
+min(Q3.counts.hatecrimes.from.1991.to.2021$data_year)
+
+min(Q3.locations.hatecrimes.from.1991.to.2021$data_year) # No changes made
+
+min(Q3.Offender.race.hatecrimes.from.2000.to.2021$data_year) # No changes made
+
+min(Q3.victim.type.hatecrimes.from.2000.to.2021$data_year) # No changes made
+
+####################################################################################################################################################
+
+# Set of tests to compare groups: 
+
+# Step 1: Check for normality: 
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Atheism/Agnosticism`) #N
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Mormon` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Other Christian` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Male` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Buddhist` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Sikh`)
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Native Hawaiian or Other Pacific Islander` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Mental Disability` ) #N
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Arab` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Heterosexual` ) #N 
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Transgender` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Asian` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Hispanic or Latino` ) #N
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-American Indian or Alaska Native` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Bisexual` ) #N
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Black or African American` ) #N 
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Jehovahs Witness`)
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Protestant` ) #N
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-White` ) #N
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Lesbian (Female)` ) #N 
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Physical Disability` ) #N 
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Islamic (Muslim)` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Hindu` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Gay (Male)` ) #N
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Eastern Orthodox (Russian, Greek, Other)` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Jewish` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Female` )
+
+shapiro.test(Q3.counts.hatecrimes.from.1991.to.2021$`Anti-Catholic` ) #N 
+
+
+####################################################################################################################################################
+
+
+# Kruskal-Wallis test (Non-Parametric): 
+
+# install.packages('dunn.test')
+library(dunn.test)
+
+k.t<- Q3.counts.hatecrimes.from.1991.to.2021
+
+Kruskal.Wallis.groups<- kruskal.test(k.t$`Anti-Mormon`, k.t$`Anti-Other Christian`, k.t$`Anti-Male`, k.t$`Anti-Buddhist`,
+             k.t$`Anti-Sikh`, k.t$`Anti-Native Hawaiian or Other Pacific Islander`, k.t$`Anti-Arab`, 
+             k.t$`Anti-Transgender`, k.t$`Anti-Asian`, k.t$`Anti-Jehovahs Witness`, k.t$`Anti-Islamic (Muslim)`, 
+             k.t$`Anti-Hindu`, k.t$`Anti-Eastern Orthodox (Russian, Greek, Other)`, k.t$`Anti-Jewish`,
+             k.t$`Anti-Female`)
+
+Kruskal.Wallis.groups
+
+# P-value = 0.001888, We reject Ho.
+# Sufficient Evidence to suggest that there is statistically significant difference between at least two groups.
+# This means that the null hypothesis (which assumes that all groups have the same median) can be rejected.
+
+k.t.np<- k.t[ , c(5,6,7,8,9,11,13,15,16,23,28,32,33,35)]
+
+dunn.test(k.t.np,method = "bonferroni")
+
+# Dun test calculates a p-value for each pairwise comparison of groups
+# If the p-value is less than a specified significance level, it indicates that the two groups have significantly different median ranks. 
+
+
+####################################################################################################################################################
+
+
+# ANOVA test (Normally-Distributed groups): 
+
+
+Normally.d.hatecrimes<- k.t[ , -c(1,2,3,5,6,7,8,9,10,11,13,15,16,17,19,22,23,28,29,30,32,33,34,35)]
+
+# Used reshape to transform the data into the proper format for ANOVA 
+#install.packages('reshape2')
+library(reshape2)
+
+Anova.Table.Testing <- reshape2::melt(Normally.d.hatecrimes)
+
+HC.Model<- aov(value~variable, data = Anova.Table.Testing)
+
+summary(HC.Model)
+
+# F value = 560.2 this means that the ratio of variance between groups is more than the variation within groups 
+# p-value = 2E-16, therefore, we reject Ho
+# There is a statistically significant difference between the groups being compared
+
+# Post-Hoc to reduce type I error by pairwise comparison.
+
+Tuk.t<- TukeyHSD(HC.Model)
+Group.names <- rownames(Tuk.t$variable)
+P.values <- Tuk.t$variable[,4]
+
+Tuk.t
+
+Tuk.results <- data.frame(Group = Group.names, P.values = P.values)
+
+Significantly.dif.groups<- Tuk.results %>% filter(P.values < 0.05)
+
+Significantly.not.dif.groups<- Tuk.results %>% filter(P.values >= 0.05)
+
+# These are the group comparatives that yield a statistically significant difference between them 
+
+
+print(Significantly.dif.groups)
+print(Significantly.not.dif.groups)
+
+
+(max(Significantly.dif.groups$P.values))/(min(Significantly.dif.groups$P.values))
+
+# Ratio between the max and the min p-values is fairly high for groups with statistically significant difference in mean. 
+
+rm(Anova.Table.Testing, HC.Model, k.t, k.t.np, Kruskal.Wallis.groups, Normally.d.hatecrimes, 
+  Tuk.results, Tuk.t, Group.names, P.values)
+
+####################################################################################################################################################
+
+
+# Question 2: Follow-up 
+
+
+# We decided to select two groups at random to use in a regression model to analyse which factors affect these groups individually.
+# This, to gain a deeper understanding of the specific differences among the groups that were identified by the Tukey HSD test.
+
+Random.row.index.sig.dif <- sample(nrow(Significantly.dif.groups), 1)
+Random.row <- Significantly.dif.groups[Random.row.index.sig.dif, ]
+print(Random.row)
+options(digits = 4, scipen = 9999)
+
+# Result of this line will variate but since it's not part of the model but just to randomly select a pair with p-v <0.05
+
+# Therefore, the two groups in the pairwise being: 
+# Anti-Protestant-Anti-Hispanic or Latino
+
+
+Count.of.crimes<- Q3.counts.hatecrimes.from.1991.to.2021
+
+Anti.Protestant.count.2000.2021<- Count.of.crimes$`Anti-Protestant`
+Anti.Hispanic.count.2000.2021<- Count.of.crimes$`Anti-Hispanic or Latino`
+Regression.df<- data.frame( Anti.Protestant.count.2000.2021, Anti.Hispanic.count.2000.2021)
+Dates<- seq(from =2000, to = 2021, by =1)
+rownames(Regression.df)<- Dates
+
+
+####################################################################################################################################################
+
+#install.packages('rvest') if needed 
+library(rvest)
+
+
+# Poverty rates in the US: 
+
+
+# Since allowed to supplement after automating the process we used a download from statista for poverty rates
+# An account was required for downloading this file 
+
+# getwd()
+# Statista <- read.csv("Poverty-rate-in-the-united-states-1990-2021.csv", header=FALSE)
+# Entered the numbers manually since the file from the website is not accessible to the person grading it
+# link file: https://www.statista.com/statistics/200463/us-poverty-rate-since-1990/#:~:text=Poverty%20rate%20in%20the%20United%20States%201990%2D2021&text=In%202021%2C%20the%20around%2011.6,line%20in%20the%20United%20States.
+
+Poverty.rates.us.statistica<- c(11.30,	11.70,	12.10,	12.50,	12.70,	12.60,	12.30,	12.50,	13.20,	14.30,	15.10,	15,	15,	14.80,	14.80,	13.50,	12.70,	12.30,	11.80,	10.50,	11.50,	11.60)
+Poverty.rates.us.statistica<- as.numeric(Poverty.rates.us.statistica)/100 # div 
+
+Regression.df$Poverty.rates.s<- Poverty.rates.us.statistica
+
+# Immigration rates per 1000 Population 
+
+Immigration.link<- "https://www.macrotrends.net/countries/USA/united-states/net-migration"
+Immigation.rates.website<- read_html(Immigration.link)
+Immigration.rates.us<- Immigation.rates.website %>% html_nodes("table.historical_data_table.table.table-striped.table-bordered") %>% html_table()  %>% .[[2]]
+
+Immigration.rates.us<- Immigration.rates.us[4:25,]
+Immigration.rates.us<- Immigration.rates.us[,2]
+Immigartion.rates<- as.numeric(Immigration.rates.us$`United States - Historical Net Migration Rate Data`)
+Net.migration.rates<- rev(Immigartion.rates)
+Net.migration.rates<- (Net.migration.rates)/100 # div
+
+Regression.df$Immigration.Rates<- Net.migration.rates
+
+
+# Unemployment Rate: 
+
+Unemployment.link<- "https://www.macrotrends.net/countries/USA/united-states/unemployment-rate"
+Unemployment.rates.website<- read_html(Unemployment.link)
+Unemployment.table<- Unemployment.rates.website %>% html_nodes("table.historical_data_table.table.table-striped.table-bordered") %>% html_table()  %>% .[[2]]
+
+Unemployment.rate<- Unemployment.table[2:23,2]
+Unemployment.rate<- Unemployment.rate$`U.S. Unemployment Rate - Historical Data`
+Unemployment.rate<- gsub("%", "",Unemployment.rate)
+Unemployment.rate<- as.numeric(Unemployment.rate)
+Unemployment.rate<- rev(Unemployment.rate)
+Unemployment.rate<- Unemployment.rate/100 # div 
+
+Regression.df$Unemployment.Rates<- Unemployment.rate
+
+
+# GDP Per Capita: 
+
+GDP.link<- "https://www.macrotrends.net/countries/USA/united-states/gdp-gross-domestic-product"
+GDP.website<- read_html(GDP.link)
+GDP.table<- GDP.website %>% html_nodes("table.historical_data_table.table.table-striped.table-bordered") %>% html_table()  %>% .[[2]]
+
+GDP.growth.rate<- GDP.table[1:23,1:4]
+colnames(GDP.growth.rate) <- GDP.growth.rate[1,]
+GDP.growth.rate <- GDP.growth.rate[-1,c(-2,-4)]
+GDP.growth.rate <- GDP.growth.rate[1:22, ]
+GDP.growth.rate$`Per Capita` <- gsub("\\$", "", GDP.growth.rate$`Per Capita`)
+GDP.growth.rate$`Per Capita` <- gsub(",", "", GDP.growth.rate$`Per Capita`) 
+GDP.Per<- rev(GDP.growth.rate$`Per Capita`)
+GDP.Per<- as.numeric(GDP.Per)
+
+Regression.df$GDP.Per.Capita<- GDP.Per
+
+
+# Crime Rate per 100K Population: 
+
+Crime.rate.link<- "https://www.macrotrends.net/countries/USA/united-states/crime-rate-statistics"
+Crime.rate.website<- read_html(Crime.rate.link)
+Crime.rate.table<- Crime.rate.website %>% html_nodes("table.historical_data_table.table.table-striped.table-bordered") %>% html_table()  %>% .[[2]]
+
+Crime.per.100K<- Crime.rate.table[2:23,2]
+Crime.per.100K<- Crime.per.100K$`U.S. Crime Rate & Statistics - Historical Data`
+Crime.per.100K<- as.numeric(Crime.per.100K)
+Crime.per.100K<- rev(Crime.per.100K)/100
+
+Regression.df$Crime.per.100K<- Crime.per.100K
+
+
+####################################################################################################################################################
+
+attach(Regression.df)
+#install.packages('car')
+library(car)
+
+# Used Poisson regression since the outcome variable is a count of rare events that occur over a period of time
+
+# Anti-Protestant: 
+
+P.Fit.Anti.Prot<- glm(Anti.Protestant.count.2000.2021~Poverty.rates.s+Immigration.Rates+Unemployment.Rates+GDP.Per.Capita+Crime.per.100K, family = 'poisson')
+summary(P.Fit.Anti.Prot)
+
+cor(Anti.Protestant.count.2000.2021,Poverty.rates.s) # Negative Weak
+cor(Anti.Protestant.count.2000.2021,Immigartion.rates) # Negative Moderate
+cor(Anti.Protestant.count.2000.2021,Unemployment.Rates) # Negative Weak
+cor(Anti.Protestant.count.2000.2021,GDP.Per.Capita) # Negative Moderate
+cor(Anti.Protestant.count.2000.2021,Crime.per.100K) # Positive Moderate
+
+vif(P.Fit.Anti.Prot)
+
+
+# Anti-Hispanic:
+
+P.Fit.Anti.Hisp<- glm(Anti.Hispanic.count.2000.2021~Poverty.rates.s+Immigration.Rates+Unemployment.Rates+GDP.Per.Capita+Crime.per.100K, family = 'poisson')
+summary(P.Fit.Anti.Hisp)
+
+cor(Anti.Hispanic.count.2000.2021,Poverty.rates.s) # Negative Moderate-Strong
+cor(Anti.Hispanic.count.2000.2021,Immigartion.rates) # Negative Weak 
+cor(Anti.Hispanic.count.2000.2021,Unemployment.Rates) # Negative Weak 
+cor(Anti.Hispanic.count.2000.2021,GDP.Per.Capita) # Negative Weak 
+cor(Anti.Hispanic.count.2000.2021,Crime.per.100K) # Positive Moderate-Strong
+
+vif(P.Fit.Anti.Hisp)
+
+
+# Look at correlations
+# F-statistics 
+# P-values
+# Differences in correlations are also interesting 
+
+rm(list = ls())
+
+####################################################################################################################################################
+
+# Question 3: 
+
+# Install any packages if required: 
+
+#install.packages('readxl')
+
+library(rvest)
+library(dplyr)
+library(jsonlite)
+library(httr)
+library(readxl)
+library(car)
+
+################################### POVERTY ####################################
+# DATA FROM FILE
+
+# Since allowed to supplement after automating the process we used a download from statista for poverty rates
+# An account was required for downloading this file 
+
+# getwd()
+# Statista <- read.csv("Poverty-rate-in-the-united-states-1990-2021.csv", header=FALSE)
+# Entered the numbers manually since the file from the website is not accessible to the person grading it
+# link file: https://www.statista.com/statistics/200463/us-poverty-rate-since-1990/#:~:text=Poverty%20rate%20in%20the%20United%20States%201990%2D2021&text=In%202021%2C%20the%20around%2011.6,line%20in%20the%20United%20States.
+
+Poverty.rates.us.statistica <- c(14.30, 15.10, 15, 15, 14.80, 14.80,
+                                 13.50, 12.70, 12.30, 11.80, 10.50)
+Poverty.rates.us.statistica <- rev(Poverty.rates.us.statistica)
+Poverty.rates.us.statistica <- as.numeric(Poverty.rates.us.statistica)/100
+
+# TEST FOR NORMALITY
+normality.test.poverty <- shapiro.test(Poverty.rates.us.statistica)
+normality.test.poverty
+# p-value = 0.06619
+
+################################# CRIME DATA ###################################
+################################# ANSWERS Q3 ###################################
+# RETRIEVING DATA
+Url <- "https://api.usa.gov/crime/fbi/cde/estimate/national?"
+Pmts <- list(from = 2009, to = 2019, API_KEY = "tkvfJa2StLgwX7Dtmr71krJPJTGv4cAM7xgsumub")
+Rs <- GET(Url, query = Pmts)
+data.violent.crime <- fromJSON(content(Rs, "text"))
+
+# PREPARING
+data.violent.crime <- data.violent.crime[,-1:-2]
+data.violent.crime$rape_revised <- ifelse(is.na(data.violent.crime$rape_revised),
+                                          data.violent.crime$rape_legacy,
+                                          data.violent.crime$rape_revised)
+data.violent.crime <- data.violent.crime[1:11, ]
+data.violent.crime <- data.violent.crime %>% select(-rape_legacy)
+data.violent.crime <- arrange(data.violent.crime, desc(year))
+
+# TEST FOR NORMALITY
+data.violent.crime[] <- lapply(data.violent.crime, as.numeric)
+normality.test.crime <- mapply(shapiro.test,
+                               data.violent.crime[c("violent_crime", "homicide",
+                                                    "rape_revised", "robbery", "aggravated_assault", "property_crime",
+                                                    "burglary", "larceny", "motor_vehicle_theft", "arson")])
+normality.test.crime
+# rape_revised: 0.059560280
+
+# COMBINING DATA SETS
+combined.data <- cbind(data.violent.crime, Poverty.rates.us.statistica)
+combined.data <- cbind(data.violent.crime, Poverty.rates.us.statistica)
+combined.data <- combined.data %>%
+  mutate(across(where(is.character), ~as.numeric(gsub("%", "", .))))
+
+names(combined.data) <- c("year", "population", "violent.crime", "homicide",
+                          "rape.revised", "robbery", "aggravated.assault", "property.crime", "burglary",
+                          "larceny", "motor.vehicle.theft", "arson", "poverty.percent")
+
+combined.data.percents <- combined.data %>%
+  mutate_at(vars(violent.crime:arson), ~ . / population * 100)
+
+# REGRESSION
+attach(combined.data.percents)
+fit1 <- lm(violent.crime ~ poverty.percent, data = combined.data.percents)
+cor(violent.crime, poverty.percent)
+# F-statistic: 0.01897 on 1 and 9 DF,  p-value: 0.8935
+# 0.04586249
+fit2 <- lm(homicide ~ poverty.percent, data = combined.data.percents)
+cor(homicide, poverty.percent)
+# F-statistic: 9.149 on 1 and 9 DF,  p-value: 0.01437
+# -0.7099981
+fit3 <- lm(rape.revised ~ poverty.percent, data = combined.data.percents)
+cor(rape.revised, poverty.percent)
+# F-statistic: 22.94 on 1 and 9 DF,  p-value: 0.0009885
+# -0.8474614
+fit4 <- lm(robbery ~ poverty.percent, data = combined.data.percents)
+cor(robbery, poverty.percent)
+# F-statistic: 15.07 on 1 and 9 DF,  p-value: 0.003718
+# 0.7912879
+fit5 <- lm(aggravated.assault ~ poverty.percent, data = combined.data.percents)
+cor(aggravated.assault, poverty.percent)
+# F-statistic: 0.9469 on 1 and 9 DF,  p-value: 0.3559
+# -0.3085333
+fit6 <- lm(property.crime ~ poverty.percent, data = combined.data.percents)
+cor(property.crime, poverty.percent)
+# F-statistic: 36.01 on 1 and 9 DF,  p-value: 0.0002022
+# 0.8944624
+fit7 <- lm(burglary ~ poverty.percent, data = combined.data.percents)
+cor(burglary, poverty.percent)
+# F-statistic: 42.84 on 1 and 9 DF,  p-value: 0.0001057
+# 0.9090604
+fit8 <- lm(larceny ~ poverty.percent, data = combined.data.percents)
+cor(larceny, poverty.percent)
+# F-statistic: 38.98 on 1 and 9 DF,  p-value: 0.0001508
+# 0.9013542
+fit9 <- lm(motor.vehicle.theft ~ poverty.percent, data = combined.data.percents)
+cor(motor.vehicle.theft, poverty.percent)
+# F-statistic: 0.08779 on 1 and 9 DF,  p-value: 0.7737
+# 0.09828722
+fit10 <- lm(arson ~ poverty.percent, data = combined.data.percents)
+cor(arson, poverty.percent)
+# F-statistic: 19.26 on 1 and 9 DF,  p-value: 0.00175
+# 0.8255187
+
+summary(fit4)
+
+################################### INCOME #####################################
+# RETRIEVING DATA
+
+tempdir()
+url <- "https://www2.census.gov/programs-surveys/demo/tables/p60/276/tableA2.xlsx"
+temp_path <- tempfile()
+download.file(url, temp_path, mode = "wb")
+data.income <- read_excel(temp_path, sheet = 1)
+unlink(temp_path)
+
+
+# PREPARING
+colnames(data.income) <- paste0("Col", seq_along(data.income))
+data.income.subset <- subset(data.income, select = c("Col1", "Col13", "Col15"),
+                             subset = Col1 >= 2009 & Col1 <= 2019)
+names(data.income.subset) <- c("Year", "Median Income", "Mean Income")
+data.income.subset
+data.income.subset <- data.income.subset[-c(4,9),]
+data.income.subset <- head(data.income.subset, 11)
+data.income.subset <- data.income.subset[, 2:3]
+
+# TEST FOR NORMALITY
+data.income.subset[] <- lapply(data.income.subset, as.numeric)
+normality.test.income <- mapply(shapiro.test,
+                                data.income.subset[c("Median Income",
+                                                     "Mean Income")])
+normality.test.income
+#           Median Income                 Mean Income                  
+# p.value   0.1903803                     0.11857    
+
+# COMBINING DATA SETS
+combined.data4 <- cbind(data.violent.crime, data.income.subset)
+combined.data4 <- combined.data4 %>% select(-year)
+combined.data4 <- combined.data4 %>%
+  mutate(across(where(is.character), ~as.numeric(gsub("%", "", .))))
+
+names(combined.data4) <- c("population", "violent.crime", "homicide",
+                           "rape.revised", "robbery", "aggravated.assault", "property.crime", "burglary",
+                           "larceny", "motor.vehicle.theft", "arson", "median.income", "mean.income")
+
+combined.data4.percents <- combined.data4 %>%
+  mutate_at(vars(violent.crime:arson), ~ . / population * 100)
+
+# REGRESSION
+attach(combined.data4.percents)
+fit1.4 <- lm(violent.crime ~ median.income, data = combined.data4.percents)
+cor(violent.crime, median.income)
+# F-statistic: 0.01365 on 1 and 9 DF,  p-value: 0.9096
+# -0.03891708
+fit2.4 <- lm(homicide ~ median.income, data = combined.data4.percents)
+cor(homicide, median.income)
+# F-statistic: 7.949 on 1 and 9 DF,  p-value: 0.02007
+# 0.6848373
+fit3.4 <- lm(rape.revised ~ median.income, data = combined.data4.percents)
+cor(rape.revised, median.income)
+# F-statistic: 22.55 on 1 and 9 DF,  p-value: 0.001046
+# 0.8454114
+fit4.4 <- lm(robbery ~ median.income, data = combined.data4.percents)
+cor(robbery, median.income)
+# F-statistic: 12.75 on 1 and 9 DF,  p-value: 0.006015
+# -0.7656621
+fit5.4 <- lm(aggravated.assault ~ median.income, data = combined.data4.percents)
+cor(aggravated.assault, median.income)
+# F-statistic: 0.9391 on 1 and 9 DF,  p-value: 0.3578
+# 0.30738
+fit6.4 <- lm(property.crime ~ median.income, data = combined.data4.percents)
+cor(property.crime, median.income)
+# F-statistic:  29.2 on 1 and 9 DF,  p-value: 0.0004311
+# -0.8742849
+fit7.4 <- lm(burglary ~ median.income, data = combined.data4.percents)
+cor(burglary, median.income)
+# F-statistic: 34.99 on 1 and 9 DF,  p-value: 0.0002247
+# -0.8918636
+fit8.4 <- lm(larceny ~ median.income, data = combined.data4.percents)
+cor(larceny, median.income)
+# F-statistic: 30.28 on 1 and 9 DF,  p-value: 0.0003788
+# -0.8779992
+fit9.4 <- lm(motor.vehicle.theft ~ median.income, data = combined.data4.percents)
+cor(motor.vehicle.theft, median.income)
+# F-statistic: 0.09086 on 1 and 9 DF,  p-value: 0.7699
+# -0.09997384
+fit10.4 <- lm(arson ~ median.income, data = combined.data4.percents)
+cor(arson, median.income)
+# F-statistic: 18.34 on 1 and 9 DF,  p-value: 0.002044
+# -0.8190043
+
+summary(fit10.4)
+
+############################## UNEMPLOYMENT RATE ###############################
+# RETRIEVING DATA  
+Unemployment.link<- "https://www.macrotrends.net/countries/USA/united-states/unemployment-rate"
+Unemployment.rates.website<- read_html(Unemployment.link)
+Unemployment.table<- Unemployment.rates.website %>% html_nodes("table.historical_data_table.table.table-striped.table-bordered") %>% html_table()  %>% .[[2]]
+
+# PREPARING
+colnames(Unemployment.table) <- Unemployment.table[1,]
+Unemployment.table <- Unemployment.table[-1,]
+Unemployment.table <- Unemployment.table[3:13, ]
+Unemployment.table <- Unemployment.table %>%
+  mutate(across(where(is.character), ~as.numeric(gsub("%", "", .))))
+
+# TEST FOR NORMALITY
+Unemployment.table[] <- lapply(Unemployment.table, as.numeric)
+normality.test.unemployment <- mapply(shapiro.test,
+                                      Unemployment.table[c("Unemployment Rate (%)")])
+normality.test.unemployment
+# Unemployment: p.value   0.2352012  
+
+# COMBINING DATA SETS
+combined.data2 <- cbind(data.violent.crime, Unemployment.table)
+combined.data2 <- combined.data2 %>% select(-Year)
+combined.data2 <- combined.data2 %>%
+  mutate(across(where(is.character), ~as.numeric(gsub("%", "", .))))
+
+names(combined.data2) <- c("year", "population", "violent.crime", "homicide",
+                           "rape.revised", "robbery", "aggravated.assault", "property.crime", "burglary",
+                           "larceny", "motor.vehicle.theft", "arson", "unemployment.rate", "annual.change")
+
+combined.data2.percents <- combined.data2 %>%
+  mutate_at(vars(violent.crime:arson), ~ . / population * 100)
+
+# REGRESSION
+attach(combined.data2.percents)
+fit1.2 <- lm(violent.crime ~ unemployment.rate, data = combined.data2.percents)
+cor(violent.crime, unemployment.rate)
+# F-statistic: 1.962 on 1 and 9 DF,  p-value: 0.1948
+# 0.4230568
+fit2.2 <- lm(homicide ~ unemployment.rate, data = combined.data2.percents)
+cor(homicide, unemployment.rate)
+# F-statistic: 3.514 on 1 and 9 DF,  p-value: 0.0936
+# -0.5299358
+fit3.2 <- lm(rape.revised ~ unemployment.rate, data = combined.data2.percents)
+cor(rape.revised, unemployment.rate)
+# F-statistic: 131.3 on 1 and 9 DF,  p-value: 1.141e-06
+# -0.967385
+fit4.2 <- lm(robbery ~ unemployment.rate, data = combined.data2.percents)
+cor(robbery, unemployment.rate)
+# F-statistic: 43.49 on 1 and 9 DF,  p-value: 9.988e-05
+# 0.9102411
+fit5.2 <- lm(aggravated.assault ~ unemployment.rate, data = combined.data2.percents)
+cor(aggravated.assault, unemployment.rate)
+# F-statistic: 0.1387 on 1 and 9 DF,  p-value: 0.7182
+# 0.1231787
+fit6.2 <- lm(property.crime ~ unemployment.rate, data = combined.data2.percents)
+cor(property.crime, unemployment.rate)
+# F-statistic: 236.6 on 1 and 9 DF,  p-value: 9.063e-08
+# 0.9815085
+fit7.2 <- lm(burglary ~ unemployment.rate, data = combined.data2.percents)
+cor(burglary, unemployment.rate)
+# F-statistic: 351.8 on 1 and 9 DF,  p-value: 1.599e-08
+# 0.9874473
+fit8.2 <- lm(larceny ~ unemployment.rate, data = combined.data2.percents)
+cor(larceny, unemployment.rate)
+# F-statistic: 172.7 on 1 and 9 DF,  p-value: 3.537e-07
+# 0.9749218
+fit9.2 <- lm(motor.vehicle.theft ~ unemployment.rate, data = combined.data2.percents)
+cor(motor.vehicle.theft, unemployment.rate)
+# F-statistic: 0.006131 on 1 and 9 DF,  p-value: 0.9393
+# 0.4174427
+fit10.2 <- lm(arson ~ unemployment.rate, data = combined.data2.percents)
+cor(arson, unemployment.rate)
+# F-statistic: 82.71 on 1 and 9 DF,  p-value: 7.839e-06***
+# 0.9576887
+
+summary(fit7.2)
+
+#################################### GDP #######################################
+# RETRIEVING DATA
+GDP.link<- "https://www.macrotrends.net/countries/USA/united-states/gdp-gross-domestic-product"
+GDP.website<- read_html(GDP.link)
+GDP.table<- GDP.website %>% html_nodes("table.historical_data_table.table.table-striped.table-bordered") %>% html_table()  %>% .[[2]]
+
+# PREPARING
+GDP.per.capita<- GDP.table[1:23,1:4]
+colnames(GDP.per.capita) <- GDP.per.capita[1,]
+GDP.per.capita <- GDP.per.capita[-1,c(-2,-4)]
+GDP.per.capita <- GDP.per.capita[3:13, ]
+GDP.per.capita$`Per Capita` <- gsub("\\$", "", GDP.per.capita$`Per Capita`)
+GDP.per.capita$`Per Capita` <- gsub(",", "", GDP.per.capita$`Per Capita`)
+
+# TEST FOR NORMALITY
+GDP.per.capita[] <- lapply(GDP.per.capita, as.numeric)
+normality.test.GDP <- mapply(shapiro.test,
+                             GDP.per.capita[c("Per Capita")])
+normality.test.GDP
+# GDP Per Capita: p.value   0.8891681
+
+# COMBINING DATA SETS
+combined.data3 <- cbind(data.violent.crime, GDP.per.capita)
+combined.data3 <- combined.data3 %>% select(-Year)
+combined.data3 <- combined.data3 %>%
+  mutate(across(where(is.character), ~as.numeric(gsub("%", "", .))))
+
+names(combined.data3) <- c("year", "population", "violent.crime", "homicide",
+                           "rape.revised", "robbery", "aggravated.assault", "property.crime", "burglary",
+                           "larceny", "motor.vehicle.theft", "arson", "GDP.per.capita")
+
+combined.data3.percents <- combined.data3 %>%
+  mutate_at(vars(violent.crime:arson), ~ . / population * 100)
+
+# REGRESSION
+attach(combined.data3.percents)
+fit1.3 <- lm(violent.crime ~ GDP.per.capita, data = combined.data3.percents)
+cor(violent.crime, GDP.per.capita)
+# F-statistic: 2.142 on 1 and 9 DF,  p-value: 0.1773
+# -0.4384912
+fit2.3 <- lm(homicide ~ GDP.per.capita, data = combined.data3.percents)
+cor(homicide, GDP.per.capita)
+# F-statistic: 2.593 on 1 and 9 DF,  p-value: 0.1418
+# 0.4729591
+fit3.3 <- lm(rape.revised ~ GDP.per.capita, data = combined.data3.percents)
+cor(rape.revised, GDP.per.capita)
+# F-statistic: 57.12 on 1 and 9 DF,  p-value: 3.477e-05
+# 0.9294502
+fit4.3 <- lm(robbery ~ GDP.per.capita, data = combined.data3.percents)
+cor(robbery, GDP.per.capita)
+# F-statistic: 122.5 on 1 and 9 DF,  p-value: 1.528e-06
+# -0.9651745
+fit5.3 <- lm(aggravated.assault ~ GDP.per.capita, data = combined.data3.percents)
+cor(aggravated.assault, GDP.per.capita)
+# F-statistic: 0.07987 on 1 and 9 DF,  p-value: 0.7839
+# -0.09379135
+fit6.3 <- lm(property.crime ~ GDP.per.capita, data = combined.data3.percents)
+cor(property.crime, GDP.per.capita)
+# F-statistic: 759.7 on 1 and 9 DF,  p-value: 5.285e-10
+# -0.9941286
+fit7.3 <- lm(burglary ~ GDP.per.capita, data = combined.data3.percents)
+cor(burglary, GDP.per.capita)
+# F-statistic: 342.9 on 1 and 9 DF,  p-value: 1.788e-08
+# -0.9871308
+fit8.3 <- lm(larceny ~ GDP.per.capita, data = combined.data3.percents)
+cor(larceny, GDP.per.capita)
+# F-statistic: 961.7 on 1 and 9 DF,  p-value: 1.848e-10
+# -0.9953534
+fit9.3 <- lm(motor.vehicle.theft ~ GDP.per.capita, data = combined.data3.percents)
+cor(motor.vehicle.theft, GDP.per.capita)
+# F-statistic: 2.446 on 1 and 9 DF,  p-value: 0.1522
+# -0.4623131
+fit10.3 <- lm(arson ~ GDP.per.capita, data = combined.data3.percents)
+cor(arson, GDP.per.capita)
+# F-statistic: 164.8 on 1 and 9 DF,  p-value: 4.326e-07
+# -0.9737642
+
+summary(fit10.3)
+
+rm(list = ls())
+
+
+####################################################################################################################################################
+
